@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Environment Dashboard</title>
+  <style>
+    body {
+      background-image: url('/static/1.jpeg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: inline-block;
+      padding: 10px 30px;
+      border-radius: 10px;
+    }
+    .ac-status {
+      font-size: 1.2em;
+      margin-bottom: 15px;
+      background-color: rgba(173, 216, 230, 0.3);
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 8px;
+    }
+    .led-indicator {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      margin-left: 10px;
+      border: 2px solid white;
+    }
+    .led-indicator.on {
+      background-color: limegreen;
+    }
+    .led-indicator.off {
+      background-color: gray;
+    }
+    .ac-buttons {
+      margin-bottom: 30px;
+    }
+    .ac-buttons button {
+      background-color: #28a745;
+      color: white;
+      font-size: 16px;
+      padding: 10px 20px;
+      margin: 0 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .ac-buttons button.off {
+      background-color: #dc3545;
+    }
+    .inline-form {
+      display: inline;
+    }
+    table {
+      margin: 0 auto;
+      width: 90%;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-collapse: collapse;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    th {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    td {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <h1>Environment Dashboard</h1>
+
+  <div class="ac-status" id="status">
+    Loading status...
+  </div>
+
+  <div class="ac-buttons">
+    <form action="/toggle_ac" method="POST" class="inline-form">
+      <input type="hidden" name="action" value="on">
+      <button type="submit">AC ON</button>
+    </form>
+    <form action="/toggle_ac" method="POST" class="inline-form">
+      <input type="hidden" name="action" value="off">
+      <button type="submit" class="off">AC OFF</button>
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Temp (°C)</th>
+        <th>Humidity (%)</th>
+        <th>Discomfort Index (DI)</th>
+        <th>AC Status</th>
+      </tr>
+    </thead>
+    <tbody id="sensor-table-body">
+      <!-- JavaScript will populate rows here -->
+    </tbody>
+  </table>
+
+  <script>
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/latest');
+        const data = await res.json();
+  
+        const tbody = document.getElementById('sensor-table-body');
+        tbody.innerHTML = '';
+  
+        if (!data.logs || data.logs.length === 0) {
+          document.getElementById('status').innerHTML = "No data available.";
+          return;
+        }
+  
+        data.logs.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.timestamp || '-'}</td>
+            <td>${row.temp ?? '-'}</td>
+            <td>${row.humidity ?? '-'}</td>
+            <td>${parseFloat(row.discomfort_index || 0).toFixed(2)}</td>
+            <td>${row.ac_status || '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+  
+        const latest = data.logs[0];
+        const statusText = `Air Conditioner Status: ${latest.ac_status}`;
+        document.getElementById('status').innerHTML = `${statusText} <span class="led-indicator ${latest.ac_status === 'AC ON' ? 'on' : 'off'}"></span>`;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        document.getElementById('status').innerText = "Error loading data.";
+      }
+    }
+  
+    setInterval(fetchData, 5000);
+    fetchData();
+  </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vientiane Weather Dashboard</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            height: 100%;
+            width: 100%;
+            z-index: 0;
+        }
+
+        .content {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            padding: 20px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            max-width: 500px;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.6em;
+        }
+
+        h2 {
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        td {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="content">
+        <h1>Vientiane Weather Dashboard</h1>
+
+        <div class="current-weather">
+            <h2>Current Weather</h2>
+            <p>Latest temperature: {{ latest.temp }}°C</p>
+            <p>Latest humidity: {{ latest.humidity }}%</p>
+        </div>
+
+        <div class="recent-weather">
+            <h2>Recent Weather Records</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Temperature</th>
+                        <th>Humidity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in recent_data %}
+                    <tr>
+                        <td>{{ data.timestamp }}</td>
+                        <td>{{ data.temp }}°C</td>
+                        <td>{{ data.humidity }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <script>
+        // Initialize the map centered on Vientiane
+        var map = L.map('map').setView([17.939304, 102.623508], 17);
+
+        // Add World Imagery tile layer from ArcGIS
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri, DigitalGlobe, Earthstar Geographics'
+        }).addTo(map);
+
+        // Add marker to the map
+        L.marker([17.939304, 102.623508]).addTo(map)
+            .bindPopup('Vientiane IICT')
+            .openPopup();
+
+        // Auto update data every 10 minutes
+        function updateAllWeatherData() {
+            fetch('/weather')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Received weather data:", data);
+
+                    if (data.current) {
+                        document.querySelector('.current-weather').innerHTML = `
+                            <h2>Current Weather</h2>
+                            <p>Latest temperature: ${data.current.temp}°C</p>
+                            <p>Latest humidity: ${data.current.humidity}%</p>
+                        `;
+                    }
+
+                    if (data.recent && data.recent.length > 0) {
+                        const tbody = document.querySelector('table tbody');
+                        tbody.innerHTML = data.recent.map(record => `
+                            <tr>
+                                <td>${record.timestamp}</td>
+                                <td>${record.temp}°C</td>
+                                <td>${record.humidity}%</td>
+                            </tr>
+                        `).join('');
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching weather data:", error);
+                });
+        }
+
+        // Initial data load and set interval for updates
+        updateAllWeatherData();
+        setInterval(updateAllWeatherData, 600000); // 10 minutes
+    </script>
+
+</body>
+</html>
